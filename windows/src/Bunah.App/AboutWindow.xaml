@@ -1,0 +1,14 @@
+<Window x:Class="Bunah.App.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tentang Bunah Kasir" Height="360" Width="460"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+  <StackPanel Margin="16">
+    <TextBlock Text="BU NAH — Kasir 58mm" FontSize="18" FontWeight="Bold"/>
+    <TextBlock x:Name="VersionText" Margin="0,4,0,0" FontWeight="Bold"/>
+    <ScrollViewer Height="200" Margin="0,8,0,0">
+      <TextBlock x:Name="DetailText" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12"/>
+    </ScrollViewer>
+    <Button Content="Tutup" Width="80" HorizontalAlignment="Right" Margin="0,12,0,0" Click="OnClose" IsDefault="True"/>
+  </StackPanel>
+</Window>

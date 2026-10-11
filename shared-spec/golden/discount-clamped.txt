@@ -1,0 +1,28 @@
+# bytes=811
+             BU NAH
+       Chinese Food Halal
+Jl. Kayu Putih Utara VI C No.37
+     Buka 11.00 - 20.00 WIB
+        WA 082 1134 7293
+--------------------------------
+No. Pesanan: 001
+Tanggal    : 10/10/2026 13:45
+Nama       : Budi
+Jenis      : Take Away
+Meja       : -
+--------------------------------
+Layanan / Produk           Total
+--------------------------------
+Nasgor Ayam            Rp 25.000
+Kwe Tiauw Ayam         Rp 25.000
+Es Teh                  Rp 5.000
+--------------------------------
+Subtotal               Rp 55.000
+Diskon 100%           -Rp 55.000
+--------------------------------
+TOTAL                       Rp 0
+Bayar                 LUNAS Qris
+--------------------------------
+          TERIMA KASIH
+ Order & free antar Kayu Putih
+         *** BU NAH ***

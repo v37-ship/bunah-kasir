@@ -1,0 +1,27 @@
+{
+  "store": {
+    "name": "BU NAH",
+    "tagline": "Chinese Food Halal",
+    "address": "Jl. Kayu Putih Utara VI C No.37",
+    "hours": "Buka 11.00 - 20.00 WIB",
+    "contact": "WA 082 1134 7293"
+  },
+  "order_no": "001",
+  "date_time": "10/10/2026 13:45",
+  "customer_name": "Budi",
+  "order_type": "Take Away",
+  "table_no": "-",
+  "items": [
+    { "name": "Nasgor Ayam", "desc": "", "price": 25000, "qty": 1 },
+    { "name": "Kwe Tiauw Ayam", "desc": "", "price": 25000, "qty": 1 },
+    { "name": "Es Teh", "desc": "", "price": 5000, "qty": 1 }
+  ],
+  "discount_type": "",
+  "discount_value": 0,
+  "payment_status": "LUNAS Qris",
+  "footer": [
+    "TERIMA KASIH",
+    "Order & free antar Kayu Putih",
+    "*** BU NAH ***"
+  ]
+}

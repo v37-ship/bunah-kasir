@@ -1,0 +1,146 @@
+<Window x:Class="Bunah.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BU NAH — Kasir 58mm" Height="700" Width="920"
+        Icon="pack://application:,,,/logo.ico">
+  <DockPanel>
+    <Menu x:Name="MainMenu" DockPanel.Dock="Top" Visibility="Collapsed">
+      <MenuItem Header="_Bantuan">
+        <MenuItem Header="_Tentang Bunah Kasir..." Click="OnAbout"/>
+        <MenuItem Header="_Panduan Pakai" Click="OnGuide"/>
+        <Separator/>
+        <MenuItem Header="_Backup Database..." Click="OnBackupDb"/>
+        <MenuItem Header="_Export CSV Riwayat..." Click="OnExportCsv"/>
+        <Separator/>
+        <MenuItem Header="Cek _Update" Click="OnCheckUpdate"/>
+        <MenuItem Header="_Diagnostik: Salin Info" Click="OnCopyDiagnostics"/>
+      </MenuItem>
+    </Menu>
+    <StatusBar DockPanel.Dock="Bottom">
+      <StatusBarItem><TextBlock x:Name="VersionStatus"/></StatusBarItem>
+      <Separator/>
+      <StatusBarItem><TextBlock x:Name="PrinterStatus" Text="Printer: -"/></StatusBarItem>
+      <Separator/>
+      <StatusBarItem><TextBlock Text="Tekan Alt untuk menu Bantuan" FontStyle="Italic"/></StatusBarItem>
+    </StatusBar>
+    <TabControl>
+    <TabItem Header="Kasir">
+      <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1.35*"/><ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+          <TextBlock Text="BU NAH — Kasir" FontSize="18" FontWeight="Bold"/>
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="Printer" Width="70" VerticalAlignment="Center"/>
+            <ComboBox x:Name="PrinterBox" Width="220" Margin="4" SelectionChanged="OnPrinterChanged"/>
+            <Button Content="Refresh" Click="OnRefreshPrinters" Margin="4" Padding="8,2"/>
+          </StackPanel>
+          <Grid Margin="0,8,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="80"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+            <TextBlock Text="No. Pesanan" VerticalAlignment="Center"/><TextBox x:Name="OrderNoBox" Grid.Column="1" Margin="4" ToolTip="Boleh diubah manual, mis. untuk revisi"/>
+            <TextBlock Grid.Row="1" Text="Nama" VerticalAlignment="Center"/><TextBox x:Name="CustomerBox" Grid.Row="1" Grid.Column="1" Margin="4"/>
+            <TextBlock Grid.Row="2" Text="Jenis" VerticalAlignment="Center"/>
+            <ComboBox x:Name="OrderTypeBox" Grid.Row="2" Grid.Column="1" Margin="4" SelectedIndex="1">
+              <ComboBoxItem>Dine In</ComboBoxItem><ComboBoxItem>Take Away</ComboBoxItem><ComboBoxItem>Delivery</ComboBoxItem>
+            </ComboBox>
+            <TextBlock Grid.Row="3" Text="Meja" VerticalAlignment="Center"/><TextBox x:Name="TableBox" Grid.Row="3" Grid.Column="1" Margin="4"/>
+            <TextBlock Grid.Row="4" Text="Bayar" VerticalAlignment="Center"/>
+            <ComboBox x:Name="PayBox" Grid.Row="4" Grid.Column="1" Margin="4" SelectedIndex="0">
+              <ComboBoxItem>LUNAS Qris</ComboBoxItem><ComboBoxItem>LUNAS Cash</ComboBoxItem><ComboBoxItem>Belum Lunas</ComboBoxItem>
+            </ComboBox>
+            <Button Grid.Row="5" Grid.Column="1" Content="No. Baru" Click="OnNewOrderNo" Margin="4" HorizontalAlignment="Left" Padding="10,2"/>
+          </Grid>
+          <TextBlock Text="Tambah layanan" Margin="0,8,0,2" FontWeight="Bold"/>
+          <TextBox x:Name="ServiceFilter" Margin="4" TextChanged="OnServiceFilterChanged"
+                   ToolTip="Ketik untuk mencari layanan"/>
+          <TextBlock x:Name="ServiceDetail" Margin="4" TextWrapping="Wrap"/>
+          <ListBox x:Name="ServiceList" Height="120" Margin="4" SelectionChanged="OnPickService">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="{Binding Name}" FontWeight="Bold" Width="200"/>
+                  <TextBlock Text="{Binding Desc}" Margin="8,0,0,0" Foreground="Gray"/>
+                  <TextBlock Text="{Binding Price, StringFormat=Rp \{0:n0\}}" Margin="8,0,0,0"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Qty" Width="32" VerticalAlignment="Center"/>
+            <TextBox x:Name="QtyBox" Width="40" Margin="4" Text="1"/>
+            <Button Content="Tambah" Click="OnAddToCart" Margin="4" Padding="10,2"/>
+            <Button Content="Kosongkan" Click="OnClearCart" Margin="4" Padding="10,2"/>
+          </StackPanel>
+          <DataGrid x:Name="CartGrid" Height="140" Margin="4,0,4,0" AutoGenerateColumns="False" IsReadOnly="True">
+            <DataGrid.Columns>
+              <DataGridTextColumn Header="Layanan" Binding="{Binding Name}" Width="220"/>
+              <DataGridTextColumn Header="Qty" Binding="{Binding Qty}" Width="45"/>
+              <DataGridTextColumn Header="Harga" Binding="{Binding Price, StringFormat=Rp \{0:n0\}}" Width="90"/>
+              <DataGridTextColumn Header="Subtotal" Binding="{Binding LineTotal, StringFormat=Rp \{0:n0\}}" Width="100"/>
+              <DataGridTemplateColumn Width="*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate><Button Content="Hapus" Click="OnRemoveFromCart" Padding="6,1"/></DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+          <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+            <TextBlock Text="Diskon" Width="70" VerticalAlignment="Center"/>
+            <TextBox x:Name="DiscountBox" Width="80" Margin="4" ToolTip="Kosong = tanpa diskon"/>
+            <ComboBox x:Name="DiscountTypeBox" Width="60" Margin="4" SelectedIndex="0">
+              <ComboBoxItem>%</ComboBoxItem><ComboBoxItem>Rp</ComboBoxItem>
+            </ComboBox>
+            <TextBlock x:Name="TotalText" Margin="16,0,0,0" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+            <Button Content="Preview" Click="OnPreview" Padding="12,4" Margin="0,0,8,0"/>
+            <Button Content="Test Print" Click="OnTestPrint" Padding="12,4" Margin="0,0,8,0"/>
+            <Button Content="Print + Simpan" Click="OnPrint" Padding="12,4" FontWeight="Bold"/>
+          </StackPanel>
+          <TextBlock x:Name="StatusText" Margin="0,8,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <GroupBox Grid.Column="1" Header="Preview 58mm (32 kolom)">
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="PreviewText" FontFamily="Consolas" FontSize="13"/>
+          </ScrollViewer>
+        </GroupBox>
+      </Grid>
+    </TabItem>
+    <TabItem Header="Master Layanan">
+      <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+          <TextBlock Text="Layanan" Width="60" VerticalAlignment="Center"/>
+          <TextBox x:Name="SvcName" Width="220" Margin="4"/>
+          <TextBlock Text="Deskripsi" Width="70" VerticalAlignment="Center"/>
+          <TextBox x:Name="SvcDesc" Width="220" Margin="4"/>
+          <TextBlock Text="Harga" Width="45" VerticalAlignment="Center"/>
+          <TextBox x:Name="SvcPrice" Width="90" Margin="4"/>
+          <Button Content="Simpan" Click="OnSaveService" Margin="6,4" Padding="10,2"/>
+          <Button Content="Hapus" Click="OnDeleteService" Margin="0,4" Padding="10,2"/>
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Top" x:Name="SvcStatus" Margin="4"/>
+        <DataGrid x:Name="ServiceGrid" Margin="0,8,0,0" AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionChanged="OnServiceSelected">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Layanan" Binding="{Binding Name}" Width="280"/>
+            <DataGridTextColumn Header="Deskripsi" Binding="{Binding Desc}" Width="*"/>
+            <DataGridTextColumn Header="Harga" Binding="{Binding Price, StringFormat=Rp \{0:n0\}}" Width="120"/>
+          </DataGrid.Columns>
+        </DataGrid>
+      </DockPanel>
+    </TabItem>
+    <TabItem Header="Riwayat">
+      <DockPanel Margin="12">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+          <Button Content="Refresh" Click="OnRefreshHistory" Padding="12,4" Margin="0,0,8,0"/>
+          <Button Content="Export CSV" Click="OnExportCsv" Padding="12,4" Margin="0,0,8,0"/>
+          <TextBlock x:Name="DailyTotalText" VerticalAlignment="Center" FontWeight="Bold"/>
+        </StackPanel>
+        <DataGrid x:Name="HistoryGrid" Margin="0,8,0,0" AutoGenerateColumns="True" IsReadOnly="True"/>
+      </DockPanel>
+    </TabItem>
+    </TabControl>
+  </DockPanel>
+</Window>

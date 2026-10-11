@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Python golden check
+        run: python3 tools/verify_receipt.py
+
+  dotnet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      # Cross-compile the WPF app on Linux (matches how releases are built).
+      - name: Smoke test (receipt lib + golden)
+        run: dotnet run --project tools/dotnet-smoke
+      - name: Build WPF app
+        run: dotnet build windows/src/Bunah.App/Bunah.App.csproj -c Release -p:EnableWindowsTargeting=true
+
+  android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Unit tests (golden fixtures)
+        run: ./gradlew testDebugUnitTest --max-workers=2
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --max-workers=2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: android/app/build/outputs/apk/release/app-release.apk
+
+  publish:
+    needs: [verify, dotnet, android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build Windows exe
+        run: |
+          dotnet publish windows/src/Bunah.App/Bunah.App.csproj -c Release -r win-x64 \
+            --self-contained -p:EnableWindowsTargeting=true \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+            -o publish/win-x64
+      - name: Build signed Android APK
+        working-directory: android
+        env:
+          BUNAH_KEYSTORE_FILE: ${{ github.workspace }}/android/bunah-release.jks
+          BUNAH_STORE_PASSWORD: ${{ secrets.BUNAH_STORE_PASSWORD }}
+          BUNAH_KEY_ALIAS: ${{ secrets.BUNAH_KEY_ALIAS }}
+          BUNAH_KEY_PASSWORD: ${{ secrets.BUNAH_KEY_PASSWORD }}
+        run: |
+          # Decode the release keystore from a secret so every CI build is signed
+          # with the same key as local builds (APKs then upgrade in place).
+          echo "${{ secrets.BUNAH_KEYSTORE_BASE64 }}" | base64 -d > bunah-release.jks
+          ls -la bunah-release.jks
+          ./gradlew assembleRelease --max-workers=2
+          ls -la app/build/outputs/apk/release/
+      - name: Verify APK signature
+        run: |
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs \
+            android/app/build/outputs/apk/release/app-release.apk | head -4
+      - name: Rename APK to match release naming
+        run: cp android/app/build/outputs/apk/release/app-release.apk "Bunah-${GITHUB_REF_NAME}.apk"
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "Bunah $GITHUB_REF_NAME" \
+              --notes "Auto-built by CI."
+          gh release upload "$GITHUB_REF_NAME" "Bunah-${GITHUB_REF_NAME}.apk" \
+            publish/win-x64/Bunah.exe --clobber
