@@ -184,7 +184,7 @@ public partial class MainWindow : Window
             : ((ComboBoxItem)DiscountTypeBox.SelectedItem).Content.ToString()!;
         return new ReceiptModel(
             new StoreInfo("BU NAH", "Chinese Food Halal",
-                "Jl. Kayu Putih Utara VI C No.37",
+                "Kayu Putih II No 32, Pulo Gadung, Jaktim",
                 "Buka 11.00 - 20.00 WIB",
                 "WA 082 1134 7293"),
             OrderNoBox.Text.Trim(), now.ToString("dd/MM/yyyy HH:mm"),
@@ -197,7 +197,8 @@ public partial class MainWindow : Window
             new List<string> {
                 "TERIMA KASIH",
                 "Order & free antar Kayu Putih",
-                "*** BU NAH ***" });
+                "*** BU NAH ***" },
+            PrintLogo: LogoBox.IsChecked == true);
     }
 
     void OnPreview(object? s, RoutedEventArgs? e)

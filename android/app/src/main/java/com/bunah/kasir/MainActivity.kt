@@ -75,6 +75,7 @@ fun CashierScreen() {
     var pickedName by remember { mutableStateOf<String?>(null) }
     var qtyText by remember { mutableStateOf("1") }
     var pay by remember { mutableStateOf("LUNAS Qris") }
+    var printLogo by remember { mutableStateOf(true) }
     var discount by remember { mutableStateOf("") }
     var discountType by remember { mutableStateOf("%") }
     var preview by remember { mutableStateOf("") }
@@ -252,14 +253,15 @@ fun removeService(name: String) {
         val discType = if (discount.trim().isEmpty()) "" else discountType
         return Receipt(
             StoreInfo("BU NAH", "Chinese Food Halal",
-                "Jl. Kayu Putih Utara VI C No.37",
+                "Kayu Putih II No 32, Pulo Gadung, Jaktim",
                 "Buka 11.00 - 20.00 WIB",
                 "WA 082 1134 7293"),
             orderNo.ifBlank { "000" }, now, customer, orderType, tableNo,
             cart.toList(), discType, discVal, pay,
             listOf("TERIMA KASIH",
                 "Order & free antar Kayu Putih",
-                "*** BU NAH ***")
+                "*** BU NAH ***"),
+            printLogo = printLogo
         )
     }
 
@@ -298,7 +300,9 @@ fun removeService(name: String) {
     }
 
     Column(Modifier.padding(12.dp).verticalScroll(rememberScrollState())) {
-        Text("BU NAH — Kasir 58mm", style = MaterialTheme.typography.headlineSmall)
+        Image(painterResource(R.drawable.logo_bunah), contentDescription = "BU NAH",
+            modifier = Modifier.fillMaxWidth().height(72.dp), contentScale = ContentScale.Fit)
+        Text("Kasir 58mm", style = MaterialTheme.typography.headlineSmall)
         if (appVersion.isNotEmpty())
             Text("Versi $appVersion", style = MaterialTheme.typography.labelSmall)
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -414,6 +418,10 @@ fun removeService(name: String) {
                 OutlinedTextField(qtyText, { qtyText = it }, label = { Text("Qty") },
                     modifier = Modifier.width(72.dp))
                 Button(onClick = { addToCart() }) { Text("Tambah") }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = printLogo, onCheckedChange = { printLogo = it })
+                Text("Cetak logo")
             }
             if (picked?.desc?.isNotBlank() == true)
                 Text(picked.desc, style = MaterialTheme.typography.bodySmall,

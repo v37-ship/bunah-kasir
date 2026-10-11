@@ -85,6 +85,7 @@ object ReceiptTextFormatter {
 
     fun buildPreview(r: Receipt): String {
         val b = mutableListOf<String>()
+        if (r.printLogo) b.add(center("[LOGO]"))
         b.add(center(r.store.name))
         b.add(center(r.store.tagline))
         b.add(center(r.store.address))
@@ -93,9 +94,11 @@ object ReceiptTextFormatter {
         b.add(dash())
         b.add(row("No. Pesanan", r.orderNo))
         b.add(row("Tanggal", r.dateTimeText))
-        b.add(row("Nama", if (r.customerName.isBlank()) "-" else r.customerName.trim()))
+        if (r.customerName.isNotBlank())
+            b.add(row("Nama", r.customerName.trim()))
         b.add(row("Jenis", r.orderType))
-        b.add(row("Meja", if (r.tableNo.isBlank()) "-" else r.tableNo.trim()))
+        if (r.orderType.trim().equals("Dine In", ignoreCase = true) && r.tableNo.isNotBlank())
+            b.add(row("Meja", r.tableNo.trim()))
         b.add(dash())
         b.add(twoCol("Layanan / Produk", "Total"))
         b.add(dash())
@@ -103,9 +106,10 @@ object ReceiptTextFormatter {
             b.add(twoCol(it.label, rupiah(it.lineTotal)))
             if (it.desc.isNotBlank()) b.addAll(wrap(it.desc))
         }
-        b.add(dash())
-        b.add(twoCol("Subtotal", rupiah(r.subtotal)))
         val disc = r.subtotal - r.grandTotal
+        if (disc > 0) b.add(dash())
+        if (disc > 0)
+            b.add(twoCol("Subtotal", rupiah(r.subtotal)))
         if (disc > 0)
             b.add(twoCol(discountLabel(r.discountType, r.discountValue), rupiahMinus(disc)))
         b.add(dash())

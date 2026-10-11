@@ -1,7 +1,9 @@
-# bytes=776
+# bytes=4280
+             [LOGO]
              BU NAH
        Chinese Food Halal
-Jl. Kayu Putih Utara VI C No.37
+   Kayu Putih II No 32, Pulo
+         Gadung, Jaktim
      Buka 11.00 - 20.00 WIB
         WA 082 1134 7293
 --------------------------------
@@ -16,8 +18,6 @@ Layanan / Produk           Total
 Nasgor Ayam            Rp 25.000
 Kwe Tiauw Ayam         Rp 25.000
 Es Teh                  Rp 5.000
---------------------------------
-Subtotal               Rp 55.000
 --------------------------------
 TOTAL                  Rp 55.000
 Bayar                 LUNAS Qris

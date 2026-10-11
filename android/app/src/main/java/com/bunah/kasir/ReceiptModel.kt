@@ -21,7 +21,8 @@ data class Receipt(
     val discountType: String,
     val discountValue: Long,
     val paymentStatus: String,
-    val footerLines: List<String>
+    val footerLines: List<String>,
+    val printLogo: Boolean = true
 ) {
     /** Sum of line totals — single source of truth, so callers cannot disagree. */
     val subtotal: Long get() = items.sumOf { it.lineTotal }
@@ -33,7 +34,7 @@ data class Receipt(
 
 fun sampleReceipt() = Receipt(
     StoreInfo("BU NAH", "Chinese Food Halal",
-        "Jl. Kayu Putih Utara VI C No.37",
+        "Kayu Putih II No 32, Pulo Gadung, Jaktim",
         "Buka 11.00 - 20.00 WIB",
         "WA 082 1134 7293"),
     "001", "10/10/2026 13:45", "Budi", "Take Away", "-",

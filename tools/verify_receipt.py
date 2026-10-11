@@ -79,16 +79,21 @@ def discount_amount(subtotal, dtype, dval):
 
 
 def build_preview(t):
-    b = [center(t["store"]["name"]), center(t["store"]["tagline"]),
+    b = []
+    if t.get("print_logo", True):
+        b.append(center("[LOGO]"))
+    b += [center(t["store"]["name"]), center(t["store"]["tagline"]),
          center(t["store"]["address"]), center(t["store"]["hours"]),
          center(t["store"]["contact"]),
          "-" * WIDTH,
          row("No. Pesanan", t["order_no"]),
-         row("Tanggal", t["date_time"]),
-         row("Nama", t["customer_name"].strip() or "-"),
-         row("Jenis", t["order_type"]),
-         row("Meja", t["table_no"].strip() or "-"),
-         "-" * WIDTH, two_col("Layanan / Produk", "Total"), "-" * WIDTH]
+         row("Tanggal", t["date_time"])]
+    if t["customer_name"].strip():
+        b.append(row("Nama", t["customer_name"].strip()))
+    b.append(row("Jenis", t["order_type"]))
+    if t["order_type"].strip().lower() == "dine in" and t["table_no"].strip():
+        b.append(row("Meja", t["table_no"].strip()))
+    b += ["-" * WIDTH, two_col("Layanan / Produk", "Total"), "-" * WIDTH]
     for it in t["items"]:
         q = it.get("qty", 1)
         b.append(two_col(f"{it['name']} x{q}" if q > 1 else it["name"],
@@ -96,8 +101,11 @@ def build_preview(t):
         if it["desc"].strip():
             b += wrap(it["desc"])
     sub = sum(i["price"] * i.get("qty", 1) for i in t["items"])
-    b += ["-" * WIDTH, two_col("Subtotal", rupiah(sub))]
     disc = discount_amount(sub, t.get("discount_type", ""), t.get("discount_value", 0))
+    if disc > 0:
+        b.append("-" * WIDTH)
+    if disc > 0:
+        b.append(two_col("Subtotal", rupiah(sub)))
     if disc > 0:
         b.append(two_col("Diskon", "-" + rupiah(disc)) if t.get("discount_type") != "%"
                  else two_col(f"Diskon {min(max(t.get('discount_value', 0), 0), 100)}%",

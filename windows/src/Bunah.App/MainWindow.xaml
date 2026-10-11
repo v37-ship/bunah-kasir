@@ -98,6 +98,7 @@
             <Button Content="Preview" Click="OnPreview" Padding="12,4" Margin="0,0,8,0"/>
             <Button Content="Test Print" Click="OnTestPrint" Padding="12,4" Margin="0,0,8,0"/>
             <Button Content="Print + Simpan" Click="OnPrint" Padding="12,4" FontWeight="Bold"/>
+            <CheckBox x:Name="LogoBox" Content="Logo" IsChecked="True" VerticalAlignment="Center" Margin="8,0,0,0"/>
           </StackPanel>
           <TextBlock x:Name="StatusText" Margin="0,8,0,0" TextWrapping="Wrap"/>
         </StackPanel>

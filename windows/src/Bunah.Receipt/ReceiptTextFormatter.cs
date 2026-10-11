@@ -92,7 +92,9 @@ public static class ReceiptTextFormatter
 
     public static string BuildPreview(Receipt r)
     {
-        var b = new List<string>
+        var b = new List<string>();
+        if (r.PrintLogo) b.Add(Center("[LOGO]"));
+        b.AddRange(new[]
         {
             Center(r.Store.Name),
             Center(r.Store.Tagline),
@@ -100,24 +102,34 @@ public static class ReceiptTextFormatter
             Center(r.Store.Hours),
             Center(r.Store.Contact),
             Dash(),
+        });
+        b.AddRange(new[]
+        {
             Row("No. Pesanan", r.OrderNo),
             Row("Tanggal", r.DateTimeText),
-            Row("Nama", string.IsNullOrWhiteSpace(r.CustomerName) ? "-" : r.CustomerName.Trim()),
-            Row("Jenis", r.OrderType),
-            Row("Meja", string.IsNullOrWhiteSpace(r.TableNo) ? "-" : r.TableNo.Trim()),
+        });
+        if (!string.IsNullOrWhiteSpace(r.CustomerName))
+            b.Add(Row("Nama", r.CustomerName.Trim()));
+        b.Add(Row("Jenis", r.OrderType));
+        if (string.Equals(r.OrderType?.Trim(), "Dine In", System.StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(r.TableNo))
+            b.Add(Row("Meja", r.TableNo.Trim()));
+        b.AddRange(new[]
+        {
             Dash(),
             TwoCol("Layanan / Produk", "Total"),
             Dash(),
-        };
+        });
         foreach (var it in r.Items)
         {
             b.Add(TwoCol(it.Label, Rupiah(it.LineTotal)));
             if (!string.IsNullOrWhiteSpace(it.Desc))
                 foreach (var d in Wrap(it.Desc, Width)) b.Add(d);
         }
-        b.Add(Dash());
-        b.Add(TwoCol("Subtotal", Rupiah(r.Subtotal)));
         long disc = r.Subtotal - r.GrandTotal;
+        if (disc > 0) b.Add(Dash());
+        if (disc > 0)
+            b.Add(TwoCol("Subtotal", Rupiah(r.Subtotal)));
         if (disc > 0)
             b.Add(TwoCol(DiscountLabel(r.DiscountType, r.DiscountValue), RupiahMinus(disc)));
         b.Add(Dash());
@@ -130,7 +142,7 @@ public static class ReceiptTextFormatter
 
     public static Receipt Sample() => new(
         new StoreInfo("BU NAH", "Chinese Food Halal",
-            "Jl. Kayu Putih Utara VI C No.37",
+            "Kayu Putih II No 32, Pulo Gadung, Jaktim",
             "Buka 11.00 - 20.00 WIB",
             "WA 082 1134 7293"),
         "001", "10/10/2026 13:45", "Budi", "Take Away", "-",

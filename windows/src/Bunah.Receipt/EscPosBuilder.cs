@@ -15,13 +15,19 @@ public static class EscPosBuilder
     {
         var b = new List<byte>();
         Add(b, 0x1B, 0x40);                       // INIT
+        if (r.PrintLogo)
+        {
+            Add(b, 0x1B, 0x61, 0x01);             // CENTER for the logo
+            Add(b, LogoRaster.Bytes);
+            Line(b, "");
+        }
         Add(b, 0x1B, 0x33, 0x18);                 // tighter line spacing (24 dots, default 30)
         Add(b, 0x1B, 0x61, 0x01);                 // CENTER
-        Add(b, 0x1D, 0x21, 0x11); Add(b, 0x1B, 0x45, 0x01);
+        Add(b, 0x1B, 0x45, 0x01);                 // store name: bold, normal size
         Line(b, ReceiptTextFormatter.PrinterSafe(r.Store.Name));
-        Add(b, 0x1D, 0x21, 0x00);
+        Add(b, 0x1D, 0x21, 0x01);                 // tagline: double-height (fits 32 cols)
         Line(b, ReceiptTextFormatter.PrinterSafe(r.Store.Tagline));
-        Add(b, 0x1B, 0x45, 0x00);
+        Add(b, 0x1D, 0x21, 0x00); Add(b, 0x1B, 0x45, 0x00);
         foreach (var l in ReceiptTextFormatter.Wrap(r.Store.Address, 32)) Line(b, l);
         foreach (var l in ReceiptTextFormatter.Wrap(r.Store.Hours, 32)) Line(b, l);
         foreach (var l in ReceiptTextFormatter.Wrap(r.Store.Contact, 32)) Line(b, l);
@@ -30,9 +36,12 @@ public static class EscPosBuilder
         Line(b, new string('-', 32));
         Line(b, ReceiptTextFormatter.Row("No. Pesanan", r.OrderNo));
         Line(b, ReceiptTextFormatter.Row("Tanggal", r.DateTimeText));
-        Line(b, ReceiptTextFormatter.Row("Nama", string.IsNullOrWhiteSpace(r.CustomerName) ? "-" : r.CustomerName.Trim()));
+        if (!string.IsNullOrWhiteSpace(r.CustomerName))
+            Line(b, ReceiptTextFormatter.Row("Nama", r.CustomerName.Trim()));
         Line(b, ReceiptTextFormatter.Row("Jenis", r.OrderType));
-        Line(b, ReceiptTextFormatter.Row("Meja", string.IsNullOrWhiteSpace(r.TableNo) ? "-" : r.TableNo.Trim()));
+        if (string.Equals(r.OrderType?.Trim(), "Dine In", System.StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(r.TableNo))
+            Line(b, ReceiptTextFormatter.Row("Meja", r.TableNo.Trim()));
         Line(b, new string('-', 32));
         Add(b, 0x1B, 0x45, 0x01);
         foreach (var l in ReceiptTextFormatter.TwoCol("Layanan / Produk", "Total").Split('\n')) Line(b, l);
@@ -48,9 +57,10 @@ public static class EscPosBuilder
                 foreach (var l in ReceiptTextFormatter.Wrap(it.Desc, 32)) Line(b, l);
         }
 
-        Line(b, new string('-', 32));
-        foreach (var l in ReceiptTextFormatter.TwoCol("Subtotal", ReceiptTextFormatter.Rupiah(r.Subtotal)).Split('\n')) Line(b, l);
         long disc = r.Subtotal - r.GrandTotal;
+        if (disc > 0) Line(b, new string('-', 32));
+        if (disc > 0)
+            foreach (var l in ReceiptTextFormatter.TwoCol("Subtotal", ReceiptTextFormatter.Rupiah(r.Subtotal)).Split('\n')) Line(b, l);
         if (disc > 0)
             foreach (var l in ReceiptTextFormatter.TwoCol(
                 ReceiptTextFormatter.DiscountLabel(r.DiscountType, r.DiscountValue),

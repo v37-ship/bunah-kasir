@@ -77,13 +77,17 @@ class GoldenTest {
     }
 
     @Test
-    fun `row labels fit 32 cols and empty name shows dash`() {
-        val r = base().copy(customerName = "")
-        val preview = ReceiptTextFormatter.buildPreview(r)
-        assertTrue("empty name must show dash",
-            preview.split("\n").any { it == "Nama       : -" })
+    fun `row labels fit 32 cols, blanks omitted`() {
+        val full = ReceiptTextFormatter.buildPreview(
+            base().copy(customerName = "Budi", orderType = "Dine In", tableNo = "7"))
         for (row in listOf("No. Pesanan", "Tanggal", "Nama", "Jenis", "Meja"))
             assertTrue("label row missing: $row",
-                preview.split("\n").any { it.startsWith(row.padEnd(11) + ": ") })
+                full.split("\n").any { it.startsWith(row.padEnd(11) + ": ") })
+        val noName = ReceiptTextFormatter.buildPreview(base().copy(customerName = ""))
+        assertTrue("empty name row must be omitted",
+            noName.split("\n").none { it.startsWith("Nama") })
+        val takeaway = ReceiptTextFormatter.buildPreview(base())
+        assertTrue("takeaway must omit Meja",
+            takeaway.split("\n").none { it.startsWith("Meja") })
     }
 }

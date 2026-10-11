@@ -1,7 +1,9 @@
-# bytes=811
+# bytes=4366
+             [LOGO]
              BU NAH
        Chinese Food Halal
-Jl. Kayu Putih Utara VI C No.37
+   Kayu Putih II No 32, Pulo
+         Gadung, Jaktim
      Buka 11.00 - 20.00 WIB
         WA 082 1134 7293
 --------------------------------
@@ -9,7 +11,6 @@ No. Pesanan: 001
 Tanggal    : 10/10/2026 13:45
 Nama       : Budi
 Jenis      : Take Away
-Meja       : -
 --------------------------------
 Layanan / Produk           Total
 --------------------------------

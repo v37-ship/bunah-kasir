@@ -58,7 +58,7 @@ public sealed class Db
         foreach (var (k, v) in new Dictionary<string, string> {
             ["store_name"] = "BU NAH",
             ["tagline"] = "Chinese Food Halal",
-            ["address"] = "Jl. Kayu Putih Utara VI C No.37",
+            ["address"] = "Kayu Putih II No 32, Pulo Gadung, Jaktim",
             ["hours"] = "Buka 11.00 - 20.00 WIB",
             ["contact"] = "WA 082 1134 7293",
         })

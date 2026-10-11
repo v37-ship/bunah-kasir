@@ -22,7 +22,8 @@ public sealed record Receipt(
     string DiscountType,
     long DiscountValue,
     string PaymentStatus,
-    List<string> FooterLines)
+    List<string> FooterLines,
+    bool PrintLogo = true)
 {
     /// <summary>Sum of line totals — single source of truth, so callers cannot disagree.</summary>
     public long Subtotal => Items.Sum(i => i.LineTotal);

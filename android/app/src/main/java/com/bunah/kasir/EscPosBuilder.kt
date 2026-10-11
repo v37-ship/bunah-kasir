@@ -15,13 +15,18 @@ object EscPosBuilder {
     fun build(r: Receipt): ByteArray {
         val b = ByteArrayOutputStream()
         bytes(b, 0x1B, 0x40)          // INIT
+        if (r.printLogo) {
+            bytes(b, 0x1B, 0x61, 0x01)  // CENTER for the logo
+            b.write(LogoRaster.bytes)
+            line(b, "")
+        }
         bytes(b, 0x1B, 0x33, 0x18)    // tighter line spacing (24 dots, default 30)
         bytes(b, 0x1B, 0x61, 0x01)    // CENTER
-        bytes(b, 0x1D, 0x21, 0x11); bytes(b, 0x1B, 0x45, 0x01)
+        bytes(b, 0x1B, 0x45, 0x01)      // store name: bold, normal size
         line(b, ReceiptTextFormatter.printerSafe(r.store.name))
-        bytes(b, 0x1D, 0x21, 0x00)
+        bytes(b, 0x1D, 0x21, 0x01)      // tagline: double-height (fits 32 cols)
         line(b, ReceiptTextFormatter.printerSafe(r.store.tagline))
-        bytes(b, 0x1B, 0x45, 0x00)
+        bytes(b, 0x1D, 0x21, 0x00); bytes(b, 0x1B, 0x45, 0x00)
         ReceiptTextFormatter.wrap(r.store.address).forEach { line(b, it) }
         ReceiptTextFormatter.wrap(r.store.hours).forEach { line(b, it) }
         ReceiptTextFormatter.wrap(r.store.contact).forEach { line(b, it) }
@@ -30,9 +35,11 @@ object EscPosBuilder {
         line(b, "-".repeat(32))
         line(b, ReceiptTextFormatter.row("No. Pesanan", r.orderNo))
         line(b, ReceiptTextFormatter.row("Tanggal", r.dateTimeText))
-        line(b, ReceiptTextFormatter.row("Nama", if (r.customerName.isBlank()) "-" else r.customerName.trim()))
+        if (r.customerName.isNotBlank())
+            line(b, ReceiptTextFormatter.row("Nama", r.customerName.trim()))
         line(b, ReceiptTextFormatter.row("Jenis", r.orderType))
-        line(b, ReceiptTextFormatter.row("Meja", if (r.tableNo.isBlank()) "-" else r.tableNo.trim()))
+        if (r.orderType.trim().equals("Dine In", ignoreCase = true) && r.tableNo.isNotBlank())
+            line(b, ReceiptTextFormatter.row("Meja", r.tableNo.trim()))
         line(b, "-".repeat(32))
         bytes(b, 0x1B, 0x45, 0x01)
         ReceiptTextFormatter.twoCol("Layanan / Produk", "Total").split("\n").forEach { line(b, it) }
@@ -47,9 +54,10 @@ object EscPosBuilder {
                 ReceiptTextFormatter.wrap(it.desc).forEach { l -> line(b, l) }
         }
 
-        line(b, "-".repeat(32))
-        ReceiptTextFormatter.twoCol("Subtotal", ReceiptTextFormatter.rupiah(r.subtotal)).split("\n").forEach { line(b, it) }
         val disc = r.subtotal - r.grandTotal
+        if (disc > 0) line(b, "-".repeat(32))
+        if (disc > 0)
+            ReceiptTextFormatter.twoCol("Subtotal", ReceiptTextFormatter.rupiah(r.subtotal)).split("\n").forEach { line(b, it) }
         if (disc > 0)
             ReceiptTextFormatter.twoCol(
                 ReceiptTextFormatter.discountLabel(r.discountType, r.discountValue),
