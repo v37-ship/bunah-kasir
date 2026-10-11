@@ -276,25 +276,38 @@ fun removeService(name: String) {
         } catch (e: Exception) { "?" }
         if (hasBtPermission()) loadDevices()
         scope.launch {
+            val retired = listOf("Nasgor Ayam", "Nasgor Seafood", "Bakmi Goreng Ayam", "Bakmi Goreng Seafood", "Cap Cay Ayam", "Cap Cay Seafood", "Omelet Sayur/Fuyunghai", "Kwe Tiauw Ayam", "Kwe Tiauw Seafood", "Chicken Butter Rice", "Ca Kangkung/Buncis Jumbo")
             val seed = listOf(
-                Svc("Nasgor Ayam", "", 25000),
-                Svc("Nasgor Seafood", "", 25000),
-                Svc("Bakmi Goreng Ayam", "", 25000),
-                Svc("Bakmi Goreng Seafood", "", 25000),
-                Svc("Cap Cay Ayam", "", 25000),
-                Svc("Cap Cay Seafood", "", 25000),
-                Svc("Omelet Sayur/Fuyunghai", "", 25000),
-                Svc("Kwe Tiauw Ayam", "", 25000),
-                Svc("Kwe Tiauw Seafood", "", 25000),
-                Svc("Chicken Butter Rice", "", 25000),
-                Svc("Ca Kangkung/Buncis Jumbo", "", 25000),
+                Svc("Nasgor Ayam (M)", "", 25000),
+                Svc("Nasgor Ayam (L)", "", 32000),
+                Svc("Nasgor Seafood (M)", "", 25000),
+                Svc("Nasgor Seafood (L)", "", 32000),
+                Svc("Bakmi Goreng Ayam (M)", "", 25000),
+                Svc("Bakmi Goreng Ayam (L)", "", 32000),
+                Svc("Bakmi Goreng Seafood (M)", "", 25000),
+                Svc("Bakmi Goreng Seafood (L)", "", 32000),
+                Svc("Cap Cay Ayam (M)", "", 25000),
+                Svc("Cap Cay Ayam (L)", "", 32000),
+                Svc("Cap Cay Seafood (M)", "", 25000),
+                Svc("Cap Cay Seafood (L)", "", 32000),
+                Svc("Omelet Sayur/Fuyunghai (M)", "", 25000),
+                Svc("Omelet Sayur/Fuyunghai (L)", "", 32000),
+                Svc("Kwe Tiauw Ayam (M)", "", 25000),
+                Svc("Kwe Tiauw Ayam (L)", "", 32000),
+                Svc("Kwe Tiauw Seafood (M)", "", 25000),
+                Svc("Kwe Tiauw Seafood (L)", "", 32000),
+                Svc("Chicken Butter Rice (M)", "", 25000),
+                Svc("Chicken Butter Rice (L)", "", 32000),
+                Svc("Sapo Tahu (L)", "", 32000),
+                Svc("Sop Ayam (M)", "", 25000),
+                Svc("Sop Ayam (L)", "", 32000),
                 Svc("Jamu BK/KA 350ml", "", 15000),
                 Svc("Jamu BK/KA 1 liter", "", 30000),
                 Svc("Teh/es teh", "", 5000),
                 Svc("Jeruk/es jeruk", "", 10000),
                 Svc("Puding", "coklat/stroberi/mangga/hazelnut/alpukat/caramel", 10000),
                 Svc("Snack", "Ceker/Usus/Peyek/Kacang", 25000))
-            withContext(Dispatchers.IO) { seed.forEach { db.svc().upsert(it) } }
+            withContext(Dispatchers.IO) { retired.forEach { db.svc().delete(it) }; seed.forEach { db.svc().upsert(it) } }
             refreshServices()
         }
     }

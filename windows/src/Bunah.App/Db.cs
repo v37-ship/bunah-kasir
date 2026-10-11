@@ -9,26 +9,63 @@ public sealed class Db
     readonly string _path;
     public Db(string path) { _path = path; Init(); }
 
+    static readonly string[] RetiredItems = new[]
+    {
+        "Nasgor Ayam",
+        "Nasgor Seafood",
+        "Bakmi Goreng Ayam",
+        "Bakmi Goreng Seafood",
+        "Cap Cay Ayam",
+        "Cap Cay Seafood",
+        "Omelet Sayur/Fuyunghai",
+        "Kwe Tiauw Ayam",
+        "Kwe Tiauw Seafood",
+        "Chicken Butter Rice",
+        "Ca Kangkung/Buncis Jumbo",
+    };
+
     void SeedServices(SqliteConnection c)
     {
+        // One-time cleanup of the pre-M/L catalog (v1.0/v1.1). Saved history is
+        // unaffected: past items live inside transactions.items_json.
+        foreach (var n in RetiredItems)
+        {
+            var del = new SqliteCommand("DELETE FROM services WHERE name=$n", c);
+            del.Parameters.AddWithValue("$n", n);
+            del.ExecuteNonQuery();
+        }
         foreach (var (n, d, p) in new (string, string, long)[]
-                 { ("Nasgor Ayam", "", 25000),
-                   ("Nasgor Seafood", "", 25000),
-                   ("Bakmi Goreng Ayam", "", 25000),
-                   ("Bakmi Goreng Seafood", "", 25000),
-                   ("Cap Cay Ayam", "", 25000),
-                   ("Cap Cay Seafood", "", 25000),
-                   ("Omelet Sayur/Fuyunghai", "", 25000),
-                   ("Kwe Tiauw Ayam", "", 25000),
-                   ("Kwe Tiauw Seafood", "", 25000),
-                   ("Chicken Butter Rice", "", 25000),
-                   ("Ca Kangkung/Buncis Jumbo", "", 25000),
+                 {
+                   ("Nasgor Ayam (M)", "", 25000),
+                   ("Nasgor Ayam (L)", "", 32000),
+                   ("Nasgor Seafood (M)", "", 25000),
+                   ("Nasgor Seafood (L)", "", 32000),
+                   ("Bakmi Goreng Ayam (M)", "", 25000),
+                   ("Bakmi Goreng Ayam (L)", "", 32000),
+                   ("Bakmi Goreng Seafood (M)", "", 25000),
+                   ("Bakmi Goreng Seafood (L)", "", 32000),
+                   ("Cap Cay Ayam (M)", "", 25000),
+                   ("Cap Cay Ayam (L)", "", 32000),
+                   ("Cap Cay Seafood (M)", "", 25000),
+                   ("Cap Cay Seafood (L)", "", 32000),
+                   ("Omelet Sayur/Fuyunghai (M)", "", 25000),
+                   ("Omelet Sayur/Fuyunghai (L)", "", 32000),
+                   ("Kwe Tiauw Ayam (M)", "", 25000),
+                   ("Kwe Tiauw Ayam (L)", "", 32000),
+                   ("Kwe Tiauw Seafood (M)", "", 25000),
+                   ("Kwe Tiauw Seafood (L)", "", 32000),
+                   ("Chicken Butter Rice (M)", "", 25000),
+                   ("Chicken Butter Rice (L)", "", 32000),
+                   ("Sapo Tahu (L)", "", 32000),
+                   ("Sop Ayam (M)", "", 25000),
+                   ("Sop Ayam (L)", "", 32000),
                    ("Jamu BK/KA 350ml", "", 15000),
                    ("Jamu BK/KA 1 liter", "", 30000),
                    ("Teh/es teh", "", 5000),
                    ("Jeruk/es jeruk", "", 10000),
                    ("Puding", "coklat/stroberi/mangga/hazelnut/alpukat/caramel", 10000),
-                   ("Snack", "Ceker/Usus/Peyek/Kacang", 25000) })
+                   ("Snack", "Ceker/Usus/Peyek/Kacang", 25000)
+                 })
         {
             var cmd = new SqliteCommand("INSERT OR IGNORE INTO services(name,desc,price) VALUES($n,$d,$p)", c);
             cmd.Parameters.AddWithValue("$n", n); cmd.Parameters.AddWithValue("$d", d);
