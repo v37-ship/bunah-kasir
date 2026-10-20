@@ -55,6 +55,25 @@ object LogoRaster {
         AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
         AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="""
 
-    // Base64.DEFAULT skips the newlines inside the triple-quoted string.
-    val bytes: ByteArray by lazy { java.util.Base64.getMimeDecoder().decode(B64) }
+    // Pure Kotlin decoder: works on API 24 (java.util.Base64 needs 26) and in JVM tests.
+    val bytes: ByteArray by lazy { decodeBase64(B64) }
+
+    private fun decodeBase64(s: String): ByteArray {
+        val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        val out = java.io.ByteArrayOutputStream()
+        var buffer = 0
+        var bits = 0
+        for (ch in s) {
+            if (ch == '=') break
+            val value = alphabet.indexOf(ch)
+            if (value < 0) continue // skips the newlines/indentation in the triple-quoted literal
+            buffer = (buffer shl 6) or value
+            bits += 6
+            if (bits >= 8) {
+                bits -= 8
+                out.write((buffer shr bits) and 0xFF)
+            }
+        }
+        return out.toByteArray()
+    }
 }

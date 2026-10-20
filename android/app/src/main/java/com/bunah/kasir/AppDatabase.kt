@@ -1,5 +1,6 @@
 package com.bunah.kasir
 
+import android.content.Context
 import androidx.room.*
 
 @Entity(tableName = "transactions")
@@ -38,4 +39,17 @@ interface SvcDao {
 abstract class AppDb : RoomDatabase() {
     abstract fun tx(): TxDao
     abstract fun svc(): SvcDao
+
+    companion object {
+        @Volatile private var instance: AppDb? = null
+
+        /** One connection per process, so rotating the screen doesn't open a new DB. */
+        fun get(context: Context): AppDb = instance ?: synchronized(this) {
+            instance ?: Room.databaseBuilder(
+                context.applicationContext, AppDb::class.java, "bunah.db")
+                .fallbackToDestructiveMigration()
+                .build()
+                .also { instance = it }
+        }
+    }
 }
