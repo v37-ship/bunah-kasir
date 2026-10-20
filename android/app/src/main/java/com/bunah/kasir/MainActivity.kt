@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.print.PrintManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -44,9 +45,12 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -124,9 +128,134 @@ fun CashierScreen() {
     var mFilter by rememberSaveable { mutableStateOf("") }
     var mSelected by rememberSaveable { mutableStateOf<String?>(null) }
 
+    // ---- Report state (survives rotation) ----
+    val reportToday = remember { Calendar.getInstance() }
+    var reportMode by rememberSaveable { mutableStateOf(ReportMode.DAY.name) }
+    var reportYear by rememberSaveable { mutableStateOf(reportToday.get(Calendar.YEAR)) }
+    var reportMonth by rememberSaveable { mutableStateOf(reportToday.get(Calendar.MONTH) + 1) }
+    var reportDay by rememberSaveable { mutableStateOf(reportToday.get(Calendar.DAY_OF_MONTH)) }
+    var reportDayPickerOpen by rememberSaveable { mutableStateOf(false) }
+    var reportMonthPickerOpen by rememberSaveable { mutableStateOf(false) }
+    var reportBusy by remember { mutableStateOf(false) }
+    var reportMessage by rememberSaveable { mutableStateOf("") }
+    var pendingReportPath by rememberSaveable { mutableStateOf<String?>(null) }
+
     var history by remember { mutableStateOf(listOf<Tx>()) }
     var dailyTotal by remember { mutableStateOf(0L) }
     val db = remember { AppDb.get(ctx) }
+
+    fun currentReportPeriod() = ReportPeriod(
+        mode = if (reportMode == ReportMode.MONTH.name) ReportMode.MONTH else ReportMode.DAY,
+        year = reportYear,
+        month = reportMonth,
+        day = reportDay,
+    )
+
+    fun savePendingReport(uri: Uri) {
+        val file = pendingReportPath?.let { File(it) } ?: return
+        scope.launch {
+            reportMessage = try {
+                withContext(Dispatchers.IO) {
+                    ctx.contentResolver.openOutputStream(uri)?.use { out ->
+                        file.inputStream().use { it.copyTo(out) }
+                    } ?: error("tidak bisa menulis file")
+                }
+                "Tersimpan: ${file.name}"
+            } catch (e: Exception) {
+                "Gagal menyimpan: ${e.message}"
+            }
+            file.delete()
+            pendingReportPath = null
+        }
+    }
+
+    val saveReportPdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri == null) {
+            pendingReportPath?.let { File(it).delete() }
+            pendingReportPath = null
+            reportMessage = "Dibatalkan."
+        } else {
+            savePendingReport(uri)
+        }
+    }
+
+    val saveReportXlsxLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    ) { uri ->
+        if (uri == null) {
+            pendingReportPath?.let { File(it).delete() }
+            pendingReportPath = null
+            reportMessage = "Dibatalkan."
+        } else {
+            savePendingReport(uri)
+        }
+    }
+
+    fun generateReport(format: String) {
+        val period = currentReportPeriod()
+        scope.launch {
+            reportBusy = true
+            reportMessage = "Menyiapkan laporan ${period.slug.lowercase()}..."
+            try {
+                val all = withContext(Dispatchers.IO) { db.tx().all() }
+                val data = withContext(Dispatchers.Default) {
+                    ReportDataBuilder.build(
+                        all.map { it.toReportTransaction() },
+                        period,
+                        ReportDataBuilder.nowText(),
+                    )
+                }
+                if (data.count == 0) {
+                    reportMessage = "Tidak ada transaksi pada ${period.title}."
+                    return@launch
+                }
+                if (format == "pdf" || format == "print") {
+                    val file = File(ctx.cacheDir, "laporan-${period.fileCode}.pdf")
+                    val pages = withContext(Dispatchers.IO) {
+                        PdfReportWriter.write(
+                            file, data, BUNAH_REPORT_PROFILE, bunahReportLogo(ctx))
+                    }
+                    if (format == "print") {
+                        val pm = ctx.getSystemService(PrintManager::class.java)
+                            ?: error("Layanan cetak tidak tersedia")
+                        pm.print(
+                            "Laporan ${period.slug} ${period.title}",
+                            PdfPrintAdapter(
+                                file,
+                                "Laporan-${period.slug}-${period.fileCode}",
+                                pages,
+                            ),
+                            null,
+                        )
+                        reportMessage = "Dialog cetak dibuka ($pages halaman)."
+                    } else {
+                        pendingReportPath = file.absolutePath
+                        reportMessage = "PDF siap ($pages halaman). Pilih lokasi simpan."
+                        saveReportPdfLauncher.launch(
+                            "Laporan-${period.slug}-${BUNAH_REPORT_PROFILE.fileTag}-${period.fileCode}.pdf")
+                    }
+                } else {
+                    val file = File(ctx.cacheDir, "laporan-${period.fileCode}.xlsx")
+                    withContext(Dispatchers.IO) {
+                        file.outputStream().use {
+                            XlsxReportWriter.write(it, data, BUNAH_REPORT_PROFILE)
+                        }
+                    }
+                    pendingReportPath = file.absolutePath
+                    reportMessage = "Excel siap. Pilih lokasi simpan."
+                    saveReportXlsxLauncher.launch(
+                        "Laporan-${period.slug}-${BUNAH_REPORT_PROFILE.fileTag}-${period.fileCode}.xlsx")
+                }
+            } catch (e: Exception) {
+                reportMessage = "Gagal membuat laporan: ${e.message}"
+            } finally {
+                reportBusy = false
+            }
+        }
+    }
 
     // ---- Bluetooth state ----
     var btGranted by remember { mutableStateOf(false) }
@@ -539,10 +668,72 @@ fun CashierScreen() {
     }
 
     @Composable
+    fun ReportSection() {
+        val period = currentReportPeriod()
+        val preview = remember(history, period) {
+            ReportDataBuilder.build(
+                history.map { it.toReportTransaction() }, period, "")
+        }
+        SectionCard("Laporan") {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = reportMode == ReportMode.DAY.name,
+                    onClick = { reportMode = ReportMode.DAY.name },
+                    label = { Text("Harian") },
+                )
+                FilterChip(
+                    selected = reportMode == ReportMode.MONTH.name,
+                    onClick = { reportMode = ReportMode.MONTH.name },
+                    label = { Text("Bulanan") },
+                )
+            }
+            OutlinedButton(
+                onClick = {
+                    if (reportMode == ReportMode.DAY.name) reportDayPickerOpen = true
+                    else reportMonthPickerOpen = true
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(period.title, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f))
+                Text("▼")
+            }
+            Text("${preview.count} transaksi · ${ReceiptTextFormatter.rupiah(preview.total)}",
+                style = MaterialTheme.typography.titleSmall)
+            if (preview.count == 0) {
+                Text("Tidak ada transaksi pada ${period.title}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { generateReport("pdf") },
+                    enabled = preview.count > 0 && !reportBusy,
+                    modifier = Modifier.weight(1f),
+                ) { Text("PDF") }
+                Button(
+                    onClick = { generateReport("xlsx") },
+                    enabled = preview.count > 0 && !reportBusy,
+                    modifier = Modifier.weight(1f),
+                ) { Text("Excel") }
+            }
+            OutlinedButton(
+                onClick = { generateReport("print") },
+                enabled = preview.count > 0 && !reportBusy,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Cetak PDF (A4)") }
+            if (reportBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (reportMessage.isNotEmpty())
+                Text(reportMessage, style = MaterialTheme.typography.labelMedium)
+        }
+    }
+
+    @Composable
     fun HistoryTab() {
         LazyColumn(Modifier.fillMaxSize(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item { ReportSection() }
             item {
                 SectionCard("Riwayat") {
                     Text("Hari ini: ${ReceiptTextFormatter.rupiah(dailyTotal)} — ${history.size} transaksi",
@@ -793,6 +984,76 @@ fun CashierScreen() {
     PickerDialog()
     PreviewDialog()
     DeleteDialog()
+
+    if (reportDayPickerOpen) {
+        val initial = remember(reportYear, reportMonth, reportDay) {
+            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                clear()
+                set(reportYear, reportMonth - 1, reportDay)
+            }.timeInMillis
+        }
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initial)
+        DatePickerDialog(
+            onDismissRequest = { reportDayPickerOpen = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        val c = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        c.timeInMillis = millis
+                        reportYear = c.get(Calendar.YEAR)
+                        reportMonth = c.get(Calendar.MONTH) + 1
+                        reportDay = c.get(Calendar.DAY_OF_MONTH)
+                    }
+                    reportDayPickerOpen = false
+                }) { Text("Pilih") }
+            },
+            dismissButton = {
+                TextButton(onClick = { reportDayPickerOpen = false }) { Text("Batal") }
+            },
+        ) { DatePicker(state = pickerState) }
+    }
+
+    if (reportMonthPickerOpen) {
+        AlertDialog(
+            onDismissRequest = { reportMonthPickerOpen = false },
+            confirmButton = {
+                TextButton(onClick = { reportMonthPickerOpen = false }) { Text("Pilih") }
+            },
+            dismissButton = {
+                TextButton(onClick = { reportMonthPickerOpen = false }) { Text("Batal") }
+            },
+            title = { Text("Pilih Bulan") },
+            text = {
+                Column(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        TextButton(onClick = { reportYear = (reportYear - 1).coerceAtLeast(1970) }) { Text("‹") }
+                        Text("$reportYear", style = MaterialTheme.typography.titleMedium)
+                        TextButton(onClick = { reportYear = (reportYear + 1).coerceAtMost(2100) }) { Text("›") }
+                    }
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
+                        items(REPORT_MONTHS_ID.size) { i ->
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .clickable { reportMonth = i + 1 }
+                                    .padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                RadioButton(
+                                    selected = reportMonth == i + 1,
+                                    onClick = { reportMonth = i + 1 },
+                                )
+                                Text(REPORT_MONTHS_ID[i], Modifier.padding(start = 4.dp))
+                            }
+                        }
+                    }
+                }
+            },
+        )
+    }
 }
 
 @Composable
